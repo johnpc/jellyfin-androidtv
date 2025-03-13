@@ -48,7 +48,7 @@ class PlaybackPreferencesScreen : OptionsFragment() {
 				setTitle(R.string.pref_next_up_timeout_title)
 				setContent(R.string.pref_next_up_timeout_summary)
 				min = 0 // value of 0 disables timer
-				max = 30_000
+				max = 60_000
 				increment = 1_000
 				valueFormatter = object : DurationSeekBarPreference.ValueFormatter() {
 					override fun display(value: Int): String = when (value) {
