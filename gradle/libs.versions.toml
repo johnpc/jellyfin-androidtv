@@ -6,6 +6,7 @@ android-desugar = "2.1.5"
 android-gradle = "8.9.0"
 android-minSdk = "21"
 android-targetSdk = "35"
+ass-media = "0.1.1"
 androidx-activity = "1.10.1"
 androidx-appcompat = "1.7.0"
 androidx-cardview = "1.0.0"
@@ -49,6 +50,7 @@ kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "ko
 [libraries]
 # Jellyfin
 jellyfin-sdk = { module = "org.jellyfin.sdk:jellyfin-core", version.ref = "jellyfin-sdk" }
+ass-media = { module = "io.github.peerless2012:ass-media", version.ref = "ass-media" }
 
 # Kotlin
 kotlin-gradle = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }

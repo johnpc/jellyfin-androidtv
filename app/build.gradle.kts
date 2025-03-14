@@ -100,6 +100,9 @@ dependencies {
 			"unstable-snapshot" -> version { strictly("openapi-unstable-SNAPSHOT") }
 		}
 	}
+	
+	// ASS Media
+	implementation(libs.ass.media)
 
 	// Kotlin
 	implementation(libs.kotlinx.coroutines)
