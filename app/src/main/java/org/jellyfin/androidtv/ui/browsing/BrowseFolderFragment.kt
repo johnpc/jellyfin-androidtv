@@ -13,7 +13,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import kotlinx.coroutines.launch
-import kotlinx.serialization.json.Json
 import org.jellyfin.androidtv.constant.Extras
 import org.jellyfin.androidtv.data.service.BackgroundService
 import org.jellyfin.androidtv.ui.itemhandling.BaseRowItem
@@ -22,6 +21,7 @@ import org.jellyfin.androidtv.ui.itemhandling.ItemRowAdapter
 import org.jellyfin.androidtv.ui.presentation.CardPresenter
 import org.jellyfin.androidtv.ui.presentation.MutableObjectAdapter
 import org.jellyfin.androidtv.ui.presentation.PositionableListRowPresenter
+import org.jellyfin.sdk.api.client.ApiClient
 import org.jellyfin.sdk.model.api.BaseItemDto
 import org.koin.android.ext.android.inject
 
@@ -37,12 +37,12 @@ abstract class BrowseFolderFragment : BrowseSupportFragment(), RowLoader {
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
 
-		// Parse intent
-		folder = Json.decodeFromString<BaseItemDto>(arguments?.getString(Extras.Folder)!!)
+		// Fetch item by ID
+		val api by inject<ApiClient>()
+		val folderId = arguments?.getString(Extras.Folder)
 		includeType = arguments?.getString(Extras.IncludeType)
 
 		// Set BrowseSupportFragment properties
-		title = folder?.name
 		headersState = HEADERS_DISABLED
 
 		// Add event listeners
@@ -66,8 +66,11 @@ abstract class BrowseFolderFragment : BrowseSupportFragment(), RowLoader {
 			}
 		}
 
-		// Initialize
+		// Fetch item and initialize
 		lifecycleScope.launch {
+			folder = folderId?.let { fetchItem(api, java.util.UUID.fromString(it)) }
+			title = folder?.name
+
 			lifecycle.repeatOnLifecycle(Lifecycle.State.CREATED) {
 				setupQueries(this@BrowseFolderFragment)
 			}

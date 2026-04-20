@@ -54,7 +54,6 @@ import org.jellyfin.androidtv.util.CoroutineUtils;
 import org.jellyfin.androidtv.util.InfoLayoutHelper;
 import org.jellyfin.androidtv.util.KeyProcessor;
 import org.jellyfin.androidtv.util.MarkdownRenderer;
-import org.jellyfin.androidtv.util.sdk.compat.JavaCompat;
 import org.jellyfin.sdk.api.client.ApiClient;
 import org.jellyfin.sdk.model.api.BaseItemDto;
 import org.jellyfin.sdk.model.api.BaseItemKind;
@@ -64,7 +63,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import kotlin.Lazy;
-import kotlinx.serialization.json.Json;
 
 public class EnhancedBrowseFragment extends Fragment implements RowLoader, View.OnKeyListener {
     protected TextView mTitle;
@@ -110,8 +108,7 @@ public class EnhancedBrowseFragment extends Fragment implements RowLoader, View.
 
         mRowsAdapter = new MutableObjectAdapter<Row>(new PositionableListRowPresenter());
 
-        setupViews();
-        setupQueries(this);
+        BrowseFragmentHelperKt.launchSetup(this);
     }
 
     @Nullable
@@ -155,33 +152,6 @@ public class EnhancedBrowseFragment extends Fragment implements RowLoader, View.
 
     protected void setupQueries(RowLoader rowLoader) {
         rowLoader.loadRows(mRows);
-    }
-
-    protected void setupViews() {
-        if (!getArguments().containsKey(Extras.Folder)) return;
-        mFolder = Json.Default.decodeFromString(BaseItemDto.Companion.serializer(), getArguments().getString(Extras.Folder));
-        if (mFolder == null) return;
-
-        if (mFolder.getCollectionType() != null) {
-            switch (mFolder.getCollectionType()) {
-                case MOVIES:
-                    itemType = BaseItemKind.MOVIE;
-                    break;
-                case TVSHOWS:
-                    itemType = BaseItemKind.SERIES;
-                    break;
-                case MUSIC:
-                    itemType = BaseItemKind.MUSIC_ALBUM;
-                    break;
-                case FOLDERS:
-                    showViews = false;
-                    break;
-                default:
-                    showViews = false;
-            }
-        } else {
-            showViews = false;
-        }
     }
 
     @Override
@@ -357,33 +327,27 @@ public class EnhancedBrowseFragment extends Fragment implements RowLoader, View.
             if (item instanceof GridButton) {
                 switch (((GridButton) item).getId()) {
                     case GRID:
-                        navigationRepository.getValue().navigate(Destinations.INSTANCE.libraryBrowser(mFolder, null));
+                        navigationRepository.getValue().navigate(Destinations.INSTANCE.libraryBrowser(mFolder.getId(), mFolder.getCollectionType(), mFolder.getDisplayPreferencesId(), null));
                         break;
 
                     case ALBUMS:
-                        mFolder = JavaCompat.copyWithDisplayPreferencesId(mFolder, mFolder.getId() + "AL");
-
-                        navigationRepository.getValue().navigate(Destinations.INSTANCE.libraryBrowser(mFolder, null));
+                        navigationRepository.getValue().navigate(Destinations.INSTANCE.libraryBrowser(mFolder.getId(), mFolder.getCollectionType(), mFolder.getId() + "AL", null));
                         break;
 
                     case ALBUM_ARTISTS:
-                        mFolder = JavaCompat.copyWithDisplayPreferencesId(mFolder, mFolder.getId() + "AR");
-
-                        navigationRepository.getValue().navigate(Destinations.INSTANCE.libraryBrowser(mFolder, "AlbumArtist"));
+                        navigationRepository.getValue().navigate(Destinations.INSTANCE.libraryBrowser(mFolder.getId(), mFolder.getCollectionType(), mFolder.getId() + "AR", "AlbumArtist"));
                         break;
 
                     case ARTISTS:
-                        mFolder = JavaCompat.copyWithDisplayPreferencesId(mFolder, mFolder.getId() + "AR");
-
-                        navigationRepository.getValue().navigate(Destinations.INSTANCE.libraryBrowser(mFolder, "Artist"));
+                        navigationRepository.getValue().navigate(Destinations.INSTANCE.libraryBrowser(mFolder.getId(), mFolder.getCollectionType(), mFolder.getId() + "AR", "Artist"));
                         break;
 
                     case BY_LETTER:
-                        navigationRepository.getValue().navigate(Destinations.INSTANCE.libraryByLetter(mFolder, itemType.getSerialName()));
+                        navigationRepository.getValue().navigate(Destinations.INSTANCE.libraryByLetter(mFolder.getId(), itemType.getSerialName()));
                         break;
 
                     case GENRES:
-                        navigationRepository.getValue().navigate(Destinations.INSTANCE.libraryByGenres(mFolder, itemType.getSerialName()));
+                        navigationRepository.getValue().navigate(Destinations.INSTANCE.libraryByGenres(mFolder.getId(), itemType.getSerialName()));
                         break;
 
                     case RANDOM:
@@ -401,7 +365,7 @@ public class EnhancedBrowseFragment extends Fragment implements RowLoader, View.
                         break;
 
                     case SUGGESTED:
-                        navigationRepository.getValue().navigate(Destinations.INSTANCE.librarySuggestions(mFolder));
+                        navigationRepository.getValue().navigate(Destinations.INSTANCE.librarySuggestions(mFolder.getId()));
                         break;
 
                     case FAVSONGS:

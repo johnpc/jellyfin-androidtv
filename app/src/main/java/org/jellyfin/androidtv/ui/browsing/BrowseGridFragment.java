@@ -73,7 +73,6 @@ import java.util.UUID;
 
 import kotlin.Lazy;
 import kotlinx.coroutines.flow.MutableStateFlow;
-import kotlinx.serialization.json.Json;
 import timber.log.Timber;
 
 public class BrowseGridFragment extends Fragment implements View.OnKeyListener {
@@ -139,13 +138,24 @@ public class BrowseGridFragment extends Fragment implements View.OnKeyListener {
         mGridHeight = Math.round(display.heightPixels / getResources().getDisplayMetrics().density - 130.6f);
         mGridWidth = Math.round(display.widthPixels / getResources().getDisplayMetrics().density);
 
-
         mActivity = getActivity();
+        mCardFocusScale = getResources().getFraction(R.fraction.card_scale_focus, 1, 1);
 
-        mFolder = Json.Default.decodeFromString(BaseItemDto.Companion.serializer(), getArguments().getString(Extras.Folder));
+        // Fetch item by ID asynchronously
+        BrowseFragmentHelperKt.launchFolderFetch(this);
+    }
+
+    /** Called by [BrowseFragmentHelperKt.launchFolderFetch] after the item is fetched. */
+    public void onFolderLoaded(BaseItemDto folder) {
+        mFolder = folder;
         mParentId = mFolder.getId();
         mainTitle = mFolder.getName();
-        libraryPreferences = preferencesRepository.getValue().getLibraryPreferences(Objects.requireNonNull(mFolder.getDisplayPreferencesId()));
+
+        // Use displayPreferencesId from arguments if provided (may be synthetic),
+        // otherwise use the one from the fetched item
+        String displayPrefsId = getArguments().getString(Extras.DisplayPreferencesId);
+        if (displayPrefsId == null) displayPrefsId = mFolder.getDisplayPreferencesId();
+        libraryPreferences = preferencesRepository.getValue().getLibraryPreferences(Objects.requireNonNull(displayPrefsId));
         mPosterSizeSetting = libraryPreferences.get(LibraryPreferences.Companion.getPosterSize());
         mImageType = libraryPreferences.get(LibraryPreferences.Companion.getImageType());
         mGridDirection = libraryPreferences.get(LibraryPreferences.Companion.getGridDirection());
@@ -180,6 +190,13 @@ public class BrowseGridFragment extends Fragment implements View.OnKeyListener {
         setAutoCardGridValues();
         setupQueries();
         setupEventListeners();
+
+        // Initialize grid if view is already created (async fetch may complete after onViewCreated)
+        if (binding != null) {
+            createGrid();
+            loadGrid();
+            addTools();
+        }
     }
 
     @Override
@@ -187,15 +204,6 @@ public class BrowseGridFragment extends Fragment implements View.OnKeyListener {
                              @Nullable Bundle savedInstanceState) {
         binding = HorizontalGridBrowseBinding.inflate(inflater, container, false);
         return binding.getRoot();
-    }
-
-    @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
-
-        createGrid();
-        loadGrid();
-        addTools();
     }
 
     @Override

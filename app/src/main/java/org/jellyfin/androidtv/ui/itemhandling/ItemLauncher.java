@@ -18,15 +18,13 @@ import org.jellyfin.androidtv.ui.presentation.MutableObjectAdapter;
 import org.jellyfin.androidtv.util.PlaybackHelper;
 import org.jellyfin.androidtv.util.Utils;
 import org.jellyfin.androidtv.util.apiclient.Response;
-import org.jellyfin.androidtv.util.sdk.compat.JavaCompat;
 import org.jellyfin.sdk.model.api.BaseItemDto;
-import org.jellyfin.sdk.model.api.BaseItemKind;
 import org.jellyfin.sdk.model.api.CollectionType;
 import org.koin.java.KoinJavaComponent;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 
 import kotlin.Lazy;
 import timber.log.Timber;
@@ -56,13 +54,13 @@ public class ItemLauncher {
                 LibraryPreferences displayPreferences = preferencesRepository.getValue().getLibraryPreferences(baseItem.getDisplayPreferencesId());
                 boolean enableSmartScreen = displayPreferences.get(LibraryPreferences.Companion.getEnableSmartScreen());
 
-                if (!enableSmartScreen) return Destinations.INSTANCE.libraryBrowser(baseItem, null);
-                else return Destinations.INSTANCE.librarySmartScreen(baseItem);
+                if (!enableSmartScreen) return Destinations.INSTANCE.libraryBrowser(baseItem.getId(), baseItem.getCollectionType(), baseItem.getDisplayPreferencesId(), null);
+                else return Destinations.INSTANCE.librarySmartScreen(baseItem.getId(), baseItem.getCollectionType());
             case MUSIC:
             case LIVETV:
-                return Destinations.INSTANCE.librarySmartScreen(baseItem);
+                return Destinations.INSTANCE.librarySmartScreen(baseItem.getId(), baseItem.getCollectionType());
             default:
-                return Destinations.INSTANCE.libraryBrowser(baseItem, null);
+                return Destinations.INSTANCE.libraryBrowser(baseItem.getId(), baseItem.getCollectionType(), baseItem.getDisplayPreferencesId(), null);
         }
     }
 
@@ -103,26 +101,26 @@ public class ItemLauncher {
                             Timber.d("playing audio queue item");
                             mediaManager.getValue().playFrom(((AudioQueueBaseRowItem) rowItem).getQueueEntry());
                         } else if (adapter instanceof ItemRowAdapter && ((ItemRowAdapter)adapter).getQueryType() == QueryType.Search) {
-                            playbackLauncher.getValue().launch(context, Arrays.asList(rowItem.getBaseItem()));
+                            playbackHelper.getValue().retrieveAndPlay(List.of(rowItem.getBaseItem().getId()), false, null, 0, context);
                         } else {
                             Timber.d("playing audio item");
-                            List<BaseItemDto> audioItemsAsList = new ArrayList<>();
+                            List<UUID> audioItemIds = new ArrayList<>();
 
                             for (Object item : adapter) {
                                 if (item instanceof BaseRowItem && ((BaseRowItem) item).getBaseItem() != null)
-                                    audioItemsAsList.add(((BaseRowItem) item).getBaseItem());
+                                    audioItemIds.add(((BaseRowItem) item).getBaseItem().getId());
                             }
 
-                            playbackLauncher.getValue().launch(context, audioItemsAsList, 0, false, adapter.indexOf(rowItem));
+                            playbackHelper.getValue().retrieveAndPlay(audioItemIds, false, null, adapter.indexOf(rowItem), context);
                         }
 
                         return;
                     case SEASON:
-                        navigationRepository.getValue().navigate(Destinations.INSTANCE.folderBrowser(baseItem));
+                        navigationRepository.getValue().navigate(Destinations.INSTANCE.folderBrowser(baseItem.getId()));
                         return;
 
                     case BOX_SET:
-                        navigationRepository.getValue().navigate(Destinations.INSTANCE.collectionBrowser(baseItem));
+                        navigationRepository.getValue().navigate(Destinations.INSTANCE.collectionBrowser(baseItem.getId()));
                         return;
 
                     case PHOTO:
@@ -141,13 +139,13 @@ public class ItemLauncher {
                 // or generic handling
                 if (Utils.isTrue(baseItem.isFolder())) {
                     // Some items don't have a display preferences id, but it's required for StdGridFragment
-                    // Use the id of the item as a workaround, it's a unique key for the specific item
-                    // Which is exactly what we want
-                    if (baseItem.getDisplayPreferencesId() == null) {
-                        baseItem = JavaCompat.copyWithDisplayPreferencesId(baseItem, baseItem.getId().toString());
+                    // Use the id of the item as a workaround for displayPreferencesId
+                    String displayPrefsId = baseItem.getDisplayPreferencesId();
+                    if (displayPrefsId == null) {
+                        displayPrefsId = baseItem.getId().toString();
                     }
 
-                    navigationRepository.getValue().navigate(Destinations.INSTANCE.libraryBrowser(baseItem, null));
+                    navigationRepository.getValue().navigate(Destinations.INSTANCE.libraryBrowser(baseItem.getId(), baseItem.getCollectionType(), displayPrefsId, null));
                 } else {
                     switch (rowItem.getSelectAction()) {
 
@@ -155,14 +153,8 @@ public class ItemLauncher {
                             navigationRepository.getValue().navigate(Destinations.INSTANCE.itemDetails(baseItem.getId()));
                             break;
                         case Play:
-                            //Just play it directly
-                            playbackHelper.getValue().getItemsToPlay(context, baseItem, baseItem.getType() == BaseItemKind.MOVIE, false, new Response<List<BaseItemDto>>() {
-                                @Override
-                                public void onResponse(List<BaseItemDto> response) {
-                                    if (!isActive()) return;
-                                    playbackLauncher.getValue().launch(context, response);
-                                }
-                            });
+                            //Just play it directly - retrieve full item by ID to ensure all fields are present
+                            playbackHelper.getValue().retrieveAndPlay(baseItem.getId(), false, context);
                             break;
                     }
                 }

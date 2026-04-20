@@ -24,6 +24,7 @@ import org.jellyfin.androidtv.ui.player.photo.PhotoPlayerFragment
 import org.jellyfin.androidtv.ui.player.video.VideoPlayerFragment
 import org.jellyfin.androidtv.ui.search.SearchFragment
 import org.jellyfin.sdk.model.api.BaseItemDto
+import org.jellyfin.sdk.model.api.CollectionType
 import org.jellyfin.sdk.model.api.ItemSortBy
 import org.jellyfin.sdk.model.api.SeriesTimerInfoDto
 import org.jellyfin.sdk.model.api.SortOrder
@@ -38,46 +39,47 @@ object Destinations {
 	)
 
 	// Browsing
-	// TODO only pass item id instead of complete JSON to browsing destinations
-	fun libraryBrowser(item: BaseItemDto, includeType: String? = null) =
-		fragmentDestination<BrowseGridFragment>(
-			Extras.Folder to Json.encodeToString(item),
+	fun libraryBrowser(
+		itemId: UUID,
+		collectionType: CollectionType? = null,
+		displayPreferencesId: String? = null,
+		includeType: String? = null,
+	) = fragmentDestination<BrowseGridFragment>(
+			Extras.Folder to itemId.toString(),
 			Extras.IncludeType to includeType,
+			Extras.CollectionType to collectionType?.serialName,
+			Extras.DisplayPreferencesId to displayPreferencesId,
 		)
 
-	// TODO only pass item id instead of complete JSON to browsing destinations
-	fun librarySmartScreen(item: BaseItemDto) = fragmentDestination<BrowseViewFragment>(
-		Extras.Folder to Json.encodeToString(item),
+	fun librarySmartScreen(itemId: UUID, collectionType: CollectionType? = null) =
+		fragmentDestination<BrowseViewFragment>(
+			Extras.Folder to itemId.toString(),
+			Extras.CollectionType to collectionType?.serialName,
+		)
+
+	fun collectionBrowser(itemId: UUID) = fragmentDestination<CollectionFragment>(
+		Extras.Folder to itemId.toString(),
 	)
 
-	// TODO only pass item id instead of complete JSON to browsing destinations
-	fun collectionBrowser(item: BaseItemDto) = fragmentDestination<CollectionFragment>(
-		Extras.Folder to Json.encodeToString(item),
+	fun folderBrowser(itemId: UUID) = fragmentDestination<GenericFolderFragment>(
+		Extras.Folder to itemId.toString(),
 	)
 
-	// TODO only pass item id instead of complete JSON to browsing destinations
-	fun folderBrowser(item: BaseItemDto) = fragmentDestination<GenericFolderFragment>(
-		Extras.Folder to Json.encodeToString(item),
-	)
-
-	// TODO only pass item id instead of complete JSON to browsing destinations
-	fun libraryByGenres(item: BaseItemDto, includeType: String) =
+	fun libraryByGenres(itemId: UUID, includeType: String) =
 		fragmentDestination<ByGenreFragment>(
-			Extras.Folder to Json.encodeToString(item),
+			Extras.Folder to itemId.toString(),
 			Extras.IncludeType to includeType,
 		)
 
-	// TODO only pass item id instead of complete JSON to browsing destinations
-	fun libraryByLetter(item: BaseItemDto, includeType: String) =
+	fun libraryByLetter(itemId: UUID, includeType: String) =
 		fragmentDestination<ByLetterFragment>(
-			Extras.Folder to Json.encodeToString(item),
+			Extras.Folder to itemId.toString(),
 			Extras.IncludeType to includeType,
 		)
 
-	// TODO only pass item id instead of complete JSON to browsing destinations
-	fun librarySuggestions(item: BaseItemDto) =
+	fun librarySuggestions(itemId: UUID) =
 		fragmentDestination<SuggestedMoviesFragment>(
-			Extras.Folder to Json.encodeToString(item),
+			Extras.Folder to itemId.toString(),
 		)
 
 	// Item details
